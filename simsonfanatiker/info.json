@@ -1,0 +1,10 @@
+{
+    "author" : ["Simsonfanatiker#6420"],
+    "install_msg" : "Thank you for installing my module. Type `[p]help Simsonfanatiker` for more information.",
+    "name" : "Simsonfanatiker",
+    "short" : "Post some Pics",
+    "description" : "Simsonfanatiker#6420",
+    "disabled" : false,
+    "tags" : ["Simsonfanatiker"],
+    "min_python_version": [3, 6, 0]
+}
