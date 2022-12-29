@@ -194,12 +194,11 @@ class inchannel(commands.Cog):
         See `[p]help inchannel set` for info on the various settings available.
         """
         if invalid := set(settings).difference(Settings.__annotations__.keys()):
-            raise commands.UserInputError("Invalid settings: " + humanize_list(list(invalid)))
+            raise commands.UserInputError(
+                f"Invalid settings: {humanize_list(list(invalid))}"
+            )
         scoped = scope or ctx.guild
-        if scope:
-            config = self.config.channel(scope)
-        else:
-            config = self.config.guild(ctx.guild)
+        config = self.config.channel(scope) if scope else self.config.guild(ctx.guild)
         cache = self.cache[scoped.id]
         cache.update(dict.fromkeys(settings, None))  # type: ignore
         if any(cache.values()):
@@ -329,10 +328,7 @@ class inchannel(commands.Cog):
             # because: https://discord.com/developers/docs/resources/guild#create-guild-channel
             my_perms.manage_roles = my_perms.administrator
             # also if your bot actually has admin... why...
-            if vc.category:
-                overs = vc.category.overwrites
-            else:
-                overs = {}
+            overs = vc.category.overwrites if vc.category else {}
             # inherit scoped roles and remove their permissions
             allow, deny = discord.Permissions(read_messages=True), discord.Permissions.none()
             for role in scoped_roles:
@@ -372,12 +368,14 @@ class inchannel(commands.Cog):
             overs.setdefault(guild.default_role, discord.PermissionOverwrite()).update(
                 read_messages=False
             )
-            # add bot to the channel
-            key: Union[discord.Member, discord.Role] = me
-            for role in me.roles:
-                if role.tags and role.tags.bot_id == me.id:
-                    key = role
-                    break
+            key: Union[discord.Member, discord.Role] = next(
+                (
+                    role
+                    for role in me.roles
+                    if role.tags and role.tags.bot_id == me.id
+                ),
+                me,
+            )
             overs.setdefault(key, discord.PermissionOverwrite()).update(
                 read_messages=True, manage_channels=True
             )
@@ -407,11 +405,9 @@ class inchannel(commands.Cog):
             return
         if not chain["dynamic"]:
             return
-        role = guild.get_role(settings["role"])
-        if role:
+        if role := guild.get_role(settings["role"]):
             await role.delete(reason=f"Dynamic role for {vc}")
-        channel = guild.get_channel(settings["channel"])
-        if channel:
+        if channel := guild.get_channel(settings["channel"]):
             await channel.delete(reason=f"Dynamic channel for {vc}")
 
     @commands.Cog.listener()
@@ -433,10 +429,8 @@ class inchannel(commands.Cog):
 
         if self._is_afk(a) is False and not self.member_as[(m.guild.id, m.id)].spammy:
             assert isinstance(a.channel, GuildVoiceTypes)
-            try:
+            with contextlib.suppress(KeyError):
                 await self.dynamic_ready[a.channel.id].wait()
-            except KeyError:
-                pass
             self._add_after(a, role_set, channel_updates)
 
         # This event gets triggered when a member leaves the server,
